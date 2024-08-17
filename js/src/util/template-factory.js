@@ -1,13 +1,14 @@
 /**
  * --------------------------------------------------------------------------
- * Bootstrap (v5.1.3): util/template-factory.js
+ * Bootstrap util/template-factory.js
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  * --------------------------------------------------------------------------
  */
 
-import { DefaultAllowlist, sanitizeHtml } from './sanitizer'
-import { getElement, isElement, typeCheckConfig } from '../util/index'
-import SelectorEngine from '../dom/selector-engine'
+import SelectorEngine from '../dom/selector-engine.js'
+import Config from './config.js'
+import { DefaultAllowlist, sanitizeHtml } from './sanitizer.js'
+import { execute, getElement, isElement } from './index.js'
 
 /**
  * Constants
@@ -16,46 +17,51 @@ import SelectorEngine from '../dom/selector-engine'
 const NAME = 'TemplateFactory'
 
 const Default = {
-  extraClass: '',
-  template: '<div></div>',
+  allowList: DefaultAllowlist,
   content: {}, // { selector : text ,  selector2 : text2 , }
+  extraClass: '',
   html: false,
   sanitize: true,
   sanitizeFn: null,
-  allowList: DefaultAllowlist
+  template: '<div></div>'
 }
 
 const DefaultType = {
-  extraClass: '(string|function)',
-  template: 'string',
+  allowList: 'object',
   content: 'object',
+  extraClass: '(string|function)',
   html: 'boolean',
   sanitize: 'boolean',
   sanitizeFn: '(null|function)',
-  allowList: 'object'
+  template: 'string'
 }
 
 const DefaultContentType = {
-  selector: '(string|element)',
-  entry: '(string|element|function|null)'
+  entry: '(string|element|function|null)',
+  selector: '(string|element)'
 }
 
 /**
  * Class definition
  */
 
-class TemplateFactory {
+class TemplateFactory extends Config {
   constructor(config) {
+    super()
     this._config = this._getConfig(config)
   }
 
   // Getters
-  static get NAME() {
-    return NAME
-  }
-
   static get Default() {
     return Default
+  }
+
+  static get DefaultType() {
+    return DefaultType
+  }
+
+  static get NAME() {
+    return NAME
   }
 
   // Public
@@ -94,21 +100,14 @@ class TemplateFactory {
   }
 
   // Private
-  _getConfig(config) {
-    config = {
-      ...Default,
-      ...(typeof config === 'object' ? config : {})
-    }
-
-    typeCheckConfig(NAME, config, DefaultType)
+  _typeCheckConfig(config) {
+    super._typeCheckConfig(config)
     this._checkContent(config.content)
-
-    return config
   }
 
   _checkContent(arg) {
     for (const [selector, content] of Object.entries(arg)) {
-      typeCheckConfig(NAME, { selector, entry: content }, DefaultContentType)
+      super._typeCheckConfig({ selector, entry: content }, DefaultContentType)
     }
   }
 
@@ -144,7 +143,7 @@ class TemplateFactory {
   }
 
   _resolvePossibleFunction(arg) {
-    return typeof arg === 'function' ? arg(this) : arg
+    return execute(arg, [undefined, this])
   }
 
   _putElementInTemplate(element, templateElement) {
